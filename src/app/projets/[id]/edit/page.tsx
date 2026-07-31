@@ -1,12 +1,7 @@
 import EditProjectClient from "../../../../components/EditProjectClient";
 
-// Disable prerendering for this page (client-side only)
+// Disable static generation for this page (client-side only)
 export const dynamic = 'force-dynamic';
-
-// Static export: Generate empty paths (client-side fetching)
-export const generateStaticParams = async () => {
-  return [];
-};
 
 export default function Page({ params }: { params: { id: string } }) {
   return <EditProjectClient params={params} />;
