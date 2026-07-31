@@ -1,4 +1,5 @@
-"use client";
+// Firebase configuration - Client side only
+// This file must be imported only in client components
 
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";

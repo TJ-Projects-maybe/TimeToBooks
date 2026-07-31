@@ -13,6 +13,9 @@ import { auth } from "../../lib/firebaseConfig";
 
 export const dynamic = 'force-dynamic';
 
+
+export const dynamic = 'force-dynamic';
+
 export default function DashboardPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
