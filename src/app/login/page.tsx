@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { FcGoogle } from "react-icons/fc";
 
 export const runtime = 'edge';
-export const dynamic = 'force-dynamic';
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");

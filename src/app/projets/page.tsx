@@ -9,7 +9,6 @@ import Link from "next/link";
 import { FiPlus, FiTrash2, FiEdit, FiEye, FiArrowLeft } from "react-icons/fi";
 
 export const runtime = 'edge';
-export const dynamic = 'force-dynamic';
 
 export default function ProjectsPage() {
   const { user, loading } = useAuth();
