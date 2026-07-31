@@ -1,14 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Disable SSR completely for Firebase compatibility
-  output: 'standalone',
-  experimental: {
-    serverActions: {
-      bodySizeLimit: '2mb',
-    },
+  // Disable all server-side rendering for Firebase compatibility
+  output: 'export',
+  // This will generate static files that can be served anywhere
+  images: {
+    unoptimized: true,
   },
-  // Force dynamic rendering for all pages
-  reactStrictMode: true,
+  // Disable server components
+  experimental: {
+    serverComponentsExternalPackages: ['firebase'],
+  },
 };
 
 module.exports = nextConfig;
