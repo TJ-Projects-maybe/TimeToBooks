@@ -6,9 +6,6 @@ import { useAuth } from "../components/AuthProvider";
 
 export const dynamic = 'force-dynamic';
 
-
-export const dynamic = 'force-dynamic';
-
 export default function Home() {
   const { user, loading } = useAuth();
   const router = useRouter();

@@ -10,9 +10,6 @@ import { FiArrowLeft, FiCheck, FiX } from "react-icons/fi";
 
 export const dynamic = 'force-dynamic';
 
-
-export const dynamic = 'force-dynamic';
-
 export default function EditProjectPage({ params }: { params: { id: string } }) {
   const { user, loading } = useAuth();
   const router = useRouter();

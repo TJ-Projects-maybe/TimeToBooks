@@ -2,7 +2,13 @@ import { db } from "../firebaseConfig";
 import { collection, addDoc, getDocs, query, where, doc, getDoc, updateDoc, deleteDoc, DocumentData } from "firebase/firestore";
 import { Project } from "../types";
 
-const projectsCollection = collection(db, "projects");
+// Ensure Firebase is only used client-side
+const getProjectsCollection = () => {
+  if (typeof window === "undefined") {
+    throw new Error("Firebase Firestore cannot be used on the server. Use client-side only.");
+  }
+  return collection(db, "projects");
+};
 
 const parseProject = (doc: DocumentData): Project => {
   const data = doc.data();
@@ -22,17 +28,20 @@ export const createProject = async (project: Omit<Project, "id" | "createdAt" | 
     createdAt: new Date(),
     updatedAt: new Date(),
   };
-  const docRef = await addDoc(projectsCollection, newProject);
+  const docRef = await addDoc(getProjectsCollection(), newProject);
   return { ...newProject, id: docRef.id } as Project;
 };
 
 export const getProjects = async (userId: string): Promise<Project[]> => {
-  const q = query(projectsCollection, where("userId", "==", userId));
+  const q = query(getProjectsCollection(), where("userId", "==", userId));
   const snapshot = await getDocs(q);
   return snapshot.docs.map(parseProject);
 };
 
 export const getProjectById = async (id: string): Promise<Project | null> => {
+  if (typeof window === "undefined") {
+    return null; // Return null during static generation
+  }
   const docRef = doc(db, "projects", id);
   const snapshot = await getDoc(docRef);
   if (!snapshot.exists()) return null;
@@ -40,6 +49,9 @@ export const getProjectById = async (id: string): Promise<Project | null> => {
 };
 
 export const updateProject = async (id: string, data: Partial<Omit<Project, "id" | "createdAt" | "userId">>) => {
+  if (typeof window === "undefined") {
+    throw new Error("Firebase Firestore cannot be used on the server. Use client-side only.");
+  }
   const docRef = doc(db, "projects", id);
   await updateDoc(docRef, {
     ...data,
@@ -49,6 +61,9 @@ export const updateProject = async (id: string, data: Partial<Omit<Project, "id"
 };
 
 export const deleteProject = async (id: string) => {
+  if (typeof window === "undefined") {
+    throw new Error("Firebase Firestore cannot be used on the server. Use client-side only.");
+  }
   const docRef = doc(db, "projects", id);
   await deleteDoc(docRef);
 };

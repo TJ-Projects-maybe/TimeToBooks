@@ -12,9 +12,6 @@ import { format } from "date-fns";
 
 export const dynamic = 'force-dynamic';
 
-
-export const dynamic = 'force-dynamic';
-
 export default function ProjectDetailPage({ params }: { params: { id: string } }) {
   const { user, loading } = useAuth();
   const router = useRouter();

@@ -4,6 +4,16 @@ import { DashboardData } from "../types";
 import { format, subDays } from "date-fns";
 
 export const getDashboardData = async (userId: string): Promise<DashboardData> => {
+  // Ensure this is only called client-side
+  if (typeof window === "undefined") {
+    return {
+      totalWords: 0,
+      totalSessions: 0,
+      projectsCount: 0,
+      recentSessions: [],
+      progressOverTime: [],
+    };
+  }
   const [projects, sessions] = await Promise.all([
     getProjects(userId),
     getSessionsByUser(userId),

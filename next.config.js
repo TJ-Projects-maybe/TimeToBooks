@@ -1,15 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Disable all server-side rendering for Firebase compatibility
-  output: 'export',
-  // This will generate static files that can be served anywhere
+  // Use standalone output for Vercel deployment
+  output: 'standalone',
+  // Disable image optimization for standalone output
   images: {
     unoptimized: true,
   },
-  // Disable server components
-  experimental: {
-    serverComponentsExternalPackages: ['firebase'],
-  },
+  // Exclude Firebase from server-side bundling
+  serverExternalPackages: ['firebase'],
 };
 
 module.exports = nextConfig;
