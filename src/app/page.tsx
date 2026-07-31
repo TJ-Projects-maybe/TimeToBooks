@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../components/AuthProvider";
 
+export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export default function Home() {

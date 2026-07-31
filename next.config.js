@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Use standalone output for Vercel deployment
+  // Disable SSR for Firebase compatibility (client-side only)
   output: 'standalone',
   // Disable image optimization for standalone output
   images: {

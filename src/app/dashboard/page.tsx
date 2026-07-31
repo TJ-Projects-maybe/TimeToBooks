@@ -11,6 +11,7 @@ import { FiPlus, FiLogOut, FiBook, FiClock, FiBarChart2 } from "react-icons/fi";
 import { signOut } from "firebase/auth";
 import { auth } from "../../lib/firebaseConfig";
 
+export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export default function DashboardPage() {
