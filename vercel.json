@@ -13,8 +13,7 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/",
-      "config": { "runtime": "edge" }
+      "dest": "/"
     }
   ]
 }

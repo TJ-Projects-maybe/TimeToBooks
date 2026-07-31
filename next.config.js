@@ -4,6 +4,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  // Ensure trailing slashes for static export compatibility
+  trailingSlash: true,
   // Exclude Firebase from server-side bundling
   serverExternalPackages: ['firebase'],
 };

@@ -8,8 +8,6 @@ import { Project } from "../../lib/types";
 import Link from "next/link";
 import { FiPlus, FiTrash2, FiEdit, FiEye, FiArrowLeft } from "react-icons/fi";
 
-export const runtime = 'edge';
-
 export default function ProjectsPage() {
   const { user, loading } = useAuth();
   const router = useRouter();

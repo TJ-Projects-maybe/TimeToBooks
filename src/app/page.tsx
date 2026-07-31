@@ -4,8 +4,6 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../components/AuthProvider";
 
-export const runtime = 'edge';
-
 export default function Home() {
   const { user, loading } = useAuth();
   const router = useRouter();
