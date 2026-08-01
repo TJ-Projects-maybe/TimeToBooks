@@ -15,14 +15,5 @@
       "src": "/(.*)",
       "dest": "/"
     }
-  ],
-  "override": {
-    "/": {
-      "use": "@vercel/node",
-      "config": {
-        "memory": 3008,
-        "maxDuration": 30
-      }
-    }
-  }
+  ]
 }
