@@ -1,10 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Force Webpack compiler (disable Turbopack)
+  experimental: {
+    forceSwcTransforms: false,
+  },
   // Disable image optimization for Firebase compatibility
   images: {
     unoptimized: true,
   },
-  // Exclude Firebase from server-side bundling (for Webpack)
+  // Webpack-specific config for Firebase
   webpack: (config) => {
     config.resolve.fallback = { ...config.resolve.fallback, fs: false, net: false, tls: false };
     return config;

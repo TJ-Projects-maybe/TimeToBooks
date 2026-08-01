@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NEXTJS_COMPILER=webpack next dev",
-    "build": "NEXTJS_COMPILER=webpack next build",
+    "dev": "next dev",
+    "build": "next build",
     "start": "next start",
     "start:no-ssr": "NODE_ENV=production next dev",
     "lint": "eslint"
