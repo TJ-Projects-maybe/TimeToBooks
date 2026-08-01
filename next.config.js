@@ -4,8 +4,11 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Exclude Firebase from server-side bundling
-  serverExternalPackages: ['firebase'],
+  // Exclude Firebase from server-side bundling (for Webpack)
+  webpack: (config) => {
+    config.resolve.fallback = { ...config.resolve.fallback, fs: false, net: false, tls: false };
+    return config;
+  },
 };
 
 module.exports = nextConfig;
