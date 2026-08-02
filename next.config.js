@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Add empty turbopack config to silence the warning
+  turbopack: {},
   // Force Webpack compiler (disable Turbopack)
   experimental: {
     forceSwcTransforms: false,
