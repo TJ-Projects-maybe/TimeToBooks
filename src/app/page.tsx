@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../components/AuthProvider";
 
@@ -9,16 +9,26 @@ export const dynamic = 'force-dynamic';
 export default function Home() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [timeoutReached, setTimeoutReached] = useState(false);
 
   useEffect(() => {
-    if (!loading) {
+    // Set a timeout to prevent infinite loading
+    const timer = setTimeout(() => {
+      setTimeoutReached(true);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!loading || timeoutReached) {
       if (user) {
         router.push("/dashboard");
       } else {
         router.push("/login");
       }
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, timeoutReached]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
