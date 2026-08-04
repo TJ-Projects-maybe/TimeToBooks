@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "./AuthProvider";
+import { useAuth } from "../lib/hooks/useAuth";
 import { getProjectById, updateProject } from "../lib/services/projectService";
 import { Project } from "../lib/types";
 import Link from "next/link";
@@ -58,13 +58,13 @@ export default function EditProjectClient({ params }: { params: { id: string } }
       setError("");
       setSuccess("");
       await updateProject(params.id, formData);
-      setSuccess("Projet mis à jour avec succès !");
+      setSuccess("Projet mis  jour avec succs !");
       
       // Refresh data
       await fetchProject();
     } catch (error) {
       console.error("Error updating project:", error);
-      setError("Erreur lors de la mise à jour du projet");
+      setError("Erreur lors de la mise  jour du projet");
     }
   };
 
@@ -152,7 +152,7 @@ export default function EditProjectClient({ params }: { params: { id: string } }
                 required
                 rows={4}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                placeholder="Écrire 50 000 mots pour mon roman"
+                placeholder="crire 50 000 mots pour mon roman"
               />
             </div>
 

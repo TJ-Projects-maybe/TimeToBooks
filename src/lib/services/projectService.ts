@@ -1,69 +1,107 @@
-import { db } from "../firebaseConfig";
-import { collection, addDoc, getDocs, query, where, doc, getDoc, updateDoc, deleteDoc, DocumentData } from "firebase/firestore";
+import { supabase } from "../supabaseClient";
 import { Project } from "../types";
 
-// Ensure Firebase is only used client-side
-const getProjectsCollection = () => {
+// Ensure Supabase is only used client-side
+const ensureClientSide = () => {
   if (typeof window === "undefined") {
-    throw new Error("Firebase Firestore cannot be used on the server. Use client-side only.");
+    throw new Error("Supabase cannot be used on the server. Use client-side only.");
   }
-  return collection(db, "projects");
 };
 
-const parseProject = (doc: DocumentData): Project => {
-  const data = doc.data();
+const parseProject = (row: any): Project => {
   return {
-    id: doc.id,
-    title: data.title,
-    goal: data.goal,
-    userId: data.userId,
-    createdAt: data.createdAt.toDate(),
-    updatedAt: data.updatedAt.toDate(),
+    id: row.id,
+    title: row.title,
+    goal: row.goal,
+    userId: row.userId,
+    createdAt: new Date(row.createdAt),
+    updatedAt: new Date(row.updatedAt),
   };
 };
 
 export const createProject = async (project: Omit<Project, "id" | "createdAt" | "updatedAt">) => {
+  ensureClientSide();
+  
   const newProject = {
     ...project,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
-  const docRef = await addDoc(getProjectsCollection(), newProject);
-  return { ...newProject, id: docRef.id } as Project;
+  
+  const { data, error } = await supabase
+    .from("projects")
+    .insert(newProject)
+    .select()
+    .single();
+  
+  if (error) {
+    throw error;
+  }
+  
+  return parseProject(data);
 };
 
 export const getProjects = async (userId: string): Promise<Project[]> => {
-  const q = query(getProjectsCollection(), where("userId", "==", userId));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(parseProject);
+  ensureClientSide();
+  
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("userId", userId)
+    .order("createdAt", { ascending: false });
+  
+  if (error) {
+    throw error;
+  }
+  
+  return data.map(parseProject);
 };
 
 export const getProjectById = async (id: string): Promise<Project | null> => {
-  if (typeof window === "undefined") {
-    return null; // Return null during static generation
+  ensureClientSide();
+  
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("id", id)
+    .single();
+  
+  if (error || !data) {
+    return null;
   }
-  const docRef = doc(db, "projects", id);
-  const snapshot = await getDoc(docRef);
-  if (!snapshot.exists()) return null;
-  return parseProject(snapshot);
+  
+  return parseProject(data);
 };
 
 export const updateProject = async (id: string, data: Partial<Omit<Project, "id" | "createdAt" | "userId">>) => {
-  if (typeof window === "undefined") {
-    throw new Error("Firebase Firestore cannot be used on the server. Use client-side only.");
-  }
-  const docRef = doc(db, "projects", id);
-  await updateDoc(docRef, {
+  ensureClientSide();
+  
+  const updateData = {
     ...data,
-    updatedAt: new Date(),
-  });
+    updatedAt: new Date().toISOString(),
+  };
+  
+  const { error } = await supabase
+    .from("projects")
+    .update(updateData)
+    .eq("id", id);
+  
+  if (error) {
+    throw error;
+  }
+  
   return getProjectById(id);
 };
 
 export const deleteProject = async (id: string) => {
-  if (typeof window === "undefined") {
-    throw new Error("Firebase Firestore cannot be used on the server. Use client-side only.");
+  ensureClientSide();
+  
+  const { error } = await supabase
+    .from("projects")
+    .delete()
+    .eq("id", id);
+  
+  if (error) {
+    throw error;
   }
-  const docRef = doc(db, "projects", id);
-  await deleteDoc(docRef);
 };

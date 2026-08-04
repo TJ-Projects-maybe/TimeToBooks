@@ -2,14 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../components/AuthProvider";
+import { useAuth } from "../../lib/hooks/useAuth";
 import { getDashboardData } from "../../lib/services/dashboardService";
 import { DashboardData } from "../../lib/types";
 import Link from "next/link";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 import { FiPlus, FiLogOut, FiBook, FiClock, FiBarChart2 } from "react-icons/fi";
-import { signOut } from "firebase/auth";
-import { auth } from "../../lib/firebaseConfig";
+import { supabase } from "../../lib/supabaseClient";
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +17,18 @@ export default function DashboardPage() {
   const router = useRouter();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loadingData, setLoadingData] = useState(true);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoadingData(true);
+      const data = await getDashboardData(user!.id);
+      setDashboardData(data);
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+    } finally {
+      setLoadingData(false);
+    }
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -31,20 +42,8 @@ export default function DashboardPage() {
     }
   }, [user]);
 
-  const fetchDashboardData = async () => {
-    try {
-      setLoadingData(true);
-      const data = await getDashboardData(user!.uid);
-      setDashboardData(data);
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-    } finally {
-      setLoadingData(false);
-    }
-  };
-
   const handleLogout = async () => {
-    await signOut(auth);
+    await supabase.auth.signOut();
     router.push("/login");
   };
 
@@ -53,7 +52,7 @@ export default function DashboardPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <h1 className="text-4xl font-bold text-blue-600 mb-4">Tableau de bord</h1>
-          <p className="text-gray-600">Chargement des données...</p>
+          <p className="text-gray-600">Chargement des donnes...</p>
         </div>
       </div>
     );
@@ -64,7 +63,7 @@ export default function DashboardPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <h1 className="text-4xl font-bold text-blue-600 mb-4">Tableau de bord</h1>
-          <p className="text-gray-600">Aucune donnée disponible</p>
+          <p className="text-gray-600">Aucune donne disponible</p>
         </div>
       </div>
     );
@@ -81,6 +80,7 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-4">
             {user?.photoURL && (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={user.photoURL}
                 alt="Profile"
@@ -92,7 +92,7 @@ export default function DashboardPage() {
               className="flex items-center gap-2 text-gray-600 hover:text-gray-800"
             >
               <FiLogOut />
-              Déconnexion
+              Dconnexion
             </button>
           </div>
         </div>
@@ -132,7 +132,7 @@ export default function DashboardPage() {
                 <FiBarChart2 className="text-2xl text-purple-600" />
               </div>
               <div>
-                <h3 className="text-sm font-medium text-gray-500">Mots écrits</h3>
+                <h3 className="text-sm font-medium text-gray-500">Mots crits</h3>
                 <p className="text-2xl font-bold text-gray-900">{dashboardData.totalWords}</p>
               </div>
             </div>
@@ -154,7 +154,7 @@ export default function DashboardPage() {
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-gray-500 text-center py-8">Aucune donnée de progression</p>
+              <p className="text-gray-500 text-center py-8">Aucune donne de progression</p>
             )}
           </div>
 
@@ -174,7 +174,7 @@ export default function DashboardPage() {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-gray-500 text-center py-8">Aucune session récente</p>
+              <p className="text-gray-500 text-center py-8">Aucune session rcente</p>
             )}
           </div>
         </div>
@@ -182,7 +182,7 @@ export default function DashboardPage() {
         {/* Recent Sessions */}
         <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 mb-8">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Sessions récentes</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Sessions rcentes</h2>
             <Link href="/projets" className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
               <FiPlus />
               Nouveau projet
@@ -223,7 +223,7 @@ export default function DashboardPage() {
               </table>
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">Aucune session enregistrée. Commencez par créer un projet !</p>
+            <p className="text-gray-500 text-center py-8">Aucune session enregistre. Commencez par crer un projet !</p>
           )}
         </div>
       </main>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../lib/auth";
+import { useAuth } from "../lib/hooks/useAuth";
 
 export const dynamic = 'force-dynamic';
 

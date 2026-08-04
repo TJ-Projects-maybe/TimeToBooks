@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
-import { auth, googleProvider } from "../../lib/firebaseConfig";
+import { supabase } from "../../lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { FcGoogle } from "react-icons/fc";
 
@@ -12,7 +11,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLogin, setIsLogin] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -20,10 +19,14 @@ export default function LoginPage() {
     try {
       setLoading(true);
       setError("");
-      await signInWithPopup(auth, googleProvider);
-      router.push("/dashboard");
-    } catch (err: any) {
-      setError(err.message || "Erreur de connexion avec Google");
+      const { error: authError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+      });
+      if (authError) {
+        throw authError;
+      }
+    } catch (err: unknown) {
+      setError((err as Error).message || "Erreur de connexion avec Google");
     } finally {
       setLoading(false);
     }
@@ -36,13 +39,25 @@ export default function LoginPage() {
       setError("");
       
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
+        const { error: authError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (authError) {
+          throw authError;
+        }
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const { error: authError } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        if (authError) {
+          throw authError;
+        }
       }
       router.push("/dashboard");
-    } catch (err: any) {
-      setError(err.message || "Erreur d'authentification");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Erreur d'authentification");
     } finally {
       setLoading(false);
     }

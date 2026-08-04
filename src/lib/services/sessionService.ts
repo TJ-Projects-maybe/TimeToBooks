@@ -1,76 +1,119 @@
-import { db } from "../firebaseConfig";
-import { collection, addDoc, getDocs, query, where, doc, getDoc, updateDoc, deleteDoc, DocumentData } from "firebase/firestore";
+import { supabase } from "../supabaseClient";
 import { WritingSession } from "../types";
 
-// Ensure Firebase is only used client-side
-const getSessionsCollection = () => {
+// Ensure Supabase is only used client-side
+const ensureClientSide = () => {
   if (typeof window === "undefined") {
-    throw new Error("Firebase Firestore cannot be used on the server. Use client-side only.");
+    throw new Error("Supabase cannot be used on the server. Use client-side only.");
   }
-  return collection(db, "writingSessions");
 };
 
-const parseSession = (doc: DocumentData): WritingSession => {
-  const data = doc.data();
+const parseSession = (row: any): WritingSession => {
   return {
-    id: doc.id,
-    projectId: data.projectId,
-    userId: data.userId,
-    date: data.date.toDate(),
-    wordsWritten: data.wordsWritten,
-    notes: data.notes || "",
-    createdAt: data.createdAt.toDate(),
+    id: row.id,
+    projectId: row.projectId,
+    userId: row.userId,
+    date: new Date(row.date),
+    wordsWritten: row.wordsWritten,
+    notes: row.notes || "",
+    createdAt: new Date(row.createdAt),
   };
 };
 
 export const createSession = async (session: Omit<WritingSession, "id" | "createdAt">): Promise<WritingSession> => {
+  ensureClientSide();
+  
   const newSession = {
     ...session,
-    createdAt: new Date(),
+    createdAt: new Date().toISOString(),
   };
-  const docRef = await addDoc(getSessionsCollection(), newSession);
-  return { ...newSession, id: docRef.id } as WritingSession;
+  
+  const { data, error } = await supabase
+    .from("writingSessions")
+    .insert(newSession)
+    .select()
+    .single();
+  
+  if (error) {
+    throw error;
+  }
+  
+  return parseSession(data);
 };
 
 export const getSessionsByProject = async (projectId: string, userId: string): Promise<WritingSession[]> => {
-  const q = query(
-    getSessionsCollection(),
-    where("projectId", "==", projectId),
-    where("userId", "==", userId)
-  );
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(parseSession);
+  ensureClientSide();
+  
+  const { data, error } = await supabase
+    .from("writingSessions")
+    .select("*")
+    .eq("projectId", projectId)
+    .eq("userId", userId)
+    .order("date", { ascending: false });
+  
+  if (error) {
+    throw error;
+  }
+  
+  return data.map(parseSession);
 };
 
 export const getSessionsByUser = async (userId: string): Promise<WritingSession[]> => {
-  const q = query(getSessionsCollection(), where("userId", "==", userId));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(parseSession);
+  ensureClientSide();
+  
+  const { data, error } = await supabase
+    .from("writingSessions")
+    .select("*")
+    .eq("userId", userId)
+    .order("date", { ascending: false });
+  
+  if (error) {
+    throw error;
+  }
+  
+  return data.map(parseSession);
 };
 
 export const getSessionById = async (id: string): Promise<WritingSession | null> => {
-  if (typeof window === "undefined") {
-    return null; // Return null during static generation
+  ensureClientSide();
+  
+  const { data, error } = await supabase
+    .from("writingSessions")
+    .select("*")
+    .eq("id", id)
+    .single();
+  
+  if (error || !data) {
+    return null;
   }
-  const docRef = doc(db, "writingSessions", id);
-  const snapshot = await getDoc(docRef);
-  if (!snapshot.exists()) return null;
-  return parseSession(snapshot);
+  
+  return parseSession(data);
 };
 
 export const updateSession = async (id: string, data: Partial<Omit<WritingSession, "id" | "createdAt" | "userId" | "projectId">>) => {
-  if (typeof window === "undefined") {
-    throw new Error("Firebase Firestore cannot be used on the server. Use client-side only.");
+  ensureClientSide();
+  
+  const { error } = await supabase
+    .from("writingSessions")
+    .update(data)
+    .eq("id", id);
+  
+  if (error) {
+    throw error;
   }
-  const docRef = doc(db, "writingSessions", id);
-  await updateDoc(docRef, data);
+  
   return getSessionById(id);
 };
 
 export const deleteSession = async (id: string) => {
-  if (typeof window === "undefined") {
-    throw new Error("Firebase Firestore cannot be used on the server. Use client-side only.");
+  ensureClientSide();
+  
+  const { error } = await supabase
+    .from("writingSessions")
+    .delete()
+    .eq("id", id);
+  
+  if (error) {
+    throw error;
   }
-  const docRef = doc(db, "writingSessions", id);
-  await deleteDoc(docRef);
 };

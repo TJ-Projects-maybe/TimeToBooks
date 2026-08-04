@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../components/AuthProvider";
+import { useAuth } from "../../lib/hooks/useAuth";
 import { getProjects, createProject, deleteProject } from "../../lib/services/projectService";
 import { Project } from "../../lib/types";
 import Link from "next/link";
@@ -18,6 +18,19 @@ export default function ProjectsPage() {
   const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState("");
 
+  const fetchProjects = async () => {
+    try {
+      setLoadingData(true);
+      const data = await getProjects(user!.id);
+      setProjects(data);
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+      setError("Erreur lors du chargement des projets");
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
   useEffect(() => {
     if (!loading && !user) {
       router.push("/login");
@@ -30,32 +43,19 @@ export default function ProjectsPage() {
     }
   }, [user]);
 
-  const fetchProjects = async () => {
-    try {
-      setLoadingData(true);
-      const data = await getProjects(user!.uid);
-      setProjects(data);
-    } catch (error) {
-      console.error("Error fetching projects:", error);
-      setError("Erreur lors du chargement des projets");
-    } finally {
-      setLoadingData(false);
-    }
-  };
-
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setError("");
       const project = await createProject({
         ...newProject,
-        userId: user!.uid,
+        userId: user!.id,
       });
       setProjects([...projects, project]);
       setNewProject({ title: "", goal: "" });
     } catch (error) {
       console.error("Error creating project:", error);
-      setError("Erreur lors de la création du projet");
+      setError("Erreur lors de la cration du projet");
     }
   };
 
@@ -108,7 +108,7 @@ export default function ProjectsPage() {
 
         {/* Create Project Form */}
         <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Créer un nouveau projet</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Crer un nouveau projet</h2>
           <form onSubmit={handleCreateProject} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -136,13 +136,13 @@ export default function ProjectsPage() {
                   onChange={(e) => setNewProject({ ...newProject, goal: e.target.value })}
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Écrire 50 000 mots"
+                  placeholder="crire 50 000 mots"
                 />
               </div>
             </div>
             <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
               <FiPlus />
-              Créer le projet
+              Crer le projet
             </button>
           </form>
         </div>
@@ -162,7 +162,7 @@ export default function ProjectsPage() {
                     <h3 className="text-lg font-semibold text-gray-900">{project.title}</h3>
                     <p className="text-sm text-gray-600 mt-1">{project.goal}</p>
                     <p className="text-xs text-gray-500 mt-1">
-                      Créé le {project.createdAt.toLocaleDateString()}
+                      Cr le {project.createdAt.toLocaleDateString()}
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -193,7 +193,7 @@ export default function ProjectsPage() {
             </div>
           ) : (
             <p className="text-gray-500 text-center py-8">
-              Aucun projet créé. Commencez par en créer un !
+              Aucun projet cr. Commencez par en crer un !
             </p>
           )}
         </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "./AuthProvider";
+import { useAuth } from "../lib/hooks/useAuth";
 import { getProjectById } from "../lib/services/projectService";
 import { getSessionsByProject, createSession, deleteSession } from "../lib/services/sessionService";
 import { Project, WritingSession } from "../lib/types";
@@ -40,7 +40,7 @@ export default function ProjectDetailClient({ params }: { params: { id: string }
       setLoadingData(true);
       const [projectData, sessionsData] = await Promise.all([
         getProjectById(params.id),
-        getSessionsByProject(params.id, user!.uid),
+        getSessionsByProject(params.id, user!.id),
       ]);
       
       if (!projectData) {
@@ -52,7 +52,7 @@ export default function ProjectDetailClient({ params }: { params: { id: string }
       setSessions(sessionsData);
     } catch (error) {
       console.error("Error fetching data:", error);
-      setError("Erreur lors du chargement des données");
+      setError("Erreur lors du chargement des donnes");
     } finally {
       setLoadingData(false);
     }
@@ -65,7 +65,7 @@ export default function ProjectDetailClient({ params }: { params: { id: string }
       const session = await createSession({
         ...newSession,
         projectId: params.id,
-        userId: user!.uid,
+        userId: user!.id,
         date: new Date(newSession.date),
       });
       setSessions([...sessions, session]);
@@ -161,7 +161,7 @@ export default function ProjectDetailClient({ params }: { params: { id: string }
 
         {/* Add Session Form */}
         <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Ajouter une session d'écriture</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Ajouter une session d'criture</h2>
           <form onSubmit={handleCreateSession} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
@@ -179,7 +179,7 @@ export default function ProjectDetailClient({ params }: { params: { id: string }
               </div>
               <div>
                 <label htmlFor="words" className="block text-sm font-medium text-gray-700 mb-1">
-                  Mots écrits
+                  Mots crits
                 </label>
                 <input
                   id="words"
@@ -216,7 +216,7 @@ export default function ProjectDetailClient({ params }: { params: { id: string }
         {/* Sessions List */}
         <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Sessions d'écriture ({sessions.length})
+            Sessions d'criture ({sessions.length})
           </h2>
           
           {sessions.length > 0 ? (
@@ -268,7 +268,7 @@ export default function ProjectDetailClient({ params }: { params: { id: string }
             </div>
           ) : (
             <p className="text-gray-500 text-center py-8">
-              Aucune session enregistrée. Ajoutez-en une pour commencer !
+              Aucune session enregistre. Ajoutez-en une pour commencer !
             </p>
           )}
         </div>
