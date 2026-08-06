@@ -1,59 +1,71 @@
-import { getProjects } from "./projectService";
-import { getSessionsByUser } from "./sessionService";
-import { DashboardData } from "../types";
-import { format, subDays } from "date-fns";
+import { getProjects } from "./projectService"
+import { getSessionsByUser } from "./sessionService"
+import { DashboardData } from "../types"
+import { format, subDays } from "date-fns"
+import { clientOnly } from "../utils/clientOnly"
+import { handleError } from "../utils/errors"
+import { getCached, setCached, makeCacheKey } from "../utils/cache"
 
-export const getDashboardData = async (userId: string): Promise<DashboardData> => {
-  // Ensure this is only called client-side
-  if (typeof window === "undefined") {
-    return {
-      totalWords: 0,
-      totalSessions: 0,
-      projectsCount: 0,
-      recentSessions: [],
-      progressOverTime: [],
-    };
+const CACHE_TTL = 30000 // 30 seconds
+
+export const getDashboardData = clientOnly(async (userId: string): Promise<DashboardData> => {
+  const cacheKey = makeCacheKey('dashboard', userId)
+  
+  // Try to get from cache
+  const cached = getCached<DashboardData>(cacheKey)
+  if (cached) {
+    return cached
   }
-  const [projects, sessions] = await Promise.all([
-    getProjects(userId),
-    getSessionsByUser(userId),
-  ]);
 
-  // Calculate total words and sessions
-  const totalWords = sessions.reduce((sum, session) => sum + session.wordsWritten, 0);
-  const totalSessions = sessions.length;
-  const projectsCount = projects.length;
+  try {
+    const [projects, sessions] = await Promise.all([
+      getProjects(userId),
+      getSessionsByUser(userId),
+    ])
 
-  // Get recent sessions (last 5)
-  const recentSessions = [...sessions]
-    .sort((a, b) => b.date.getTime() - a.date.getTime())
-    .slice(0, 5);
+    // Calculate total words and sessions
+    const totalWords = sessions.reduce((sum, session) => sum + session.wordsWritten, 0)
+    const totalSessions = sessions.length
+    const projectsCount = projects.length
 
-  // Calculate progress over time (last 30 days)
-  const thirtyDaysAgo = subDays(new Date(), 30);
-  const filteredSessions = sessions.filter(
-    (session) => session.date >= thirtyDaysAgo
-  );
+    // Get recent sessions (last 5)
+    const recentSessions = [...sessions]
+      .sort((a, b) => b.date.getTime() - a.date.getTime())
+      .slice(0, 5)
 
-  const progressMap = new Map<string, number>();
-  filteredSessions.forEach((session) => {
-    const dateStr = format(session.date, "yyyy-MM-dd");
-    progressMap.set(
-      dateStr,
-      (progressMap.get(dateStr) || 0) + session.wordsWritten
-    );
-  });
+    // Calculate progress over time (last 30 days)
+    const thirtyDaysAgo = subDays(new Date(), 30)
+    const filteredSessions = sessions.filter(
+      (session) => session.date >= thirtyDaysAgo
+    )
 
-  const progressOverTime = Array.from(progressMap.entries()).map(([date, words]) => ({
-    date,
-    words,
-  }));
+    const progressMap = new Map<string, number>()
+    filteredSessions.forEach((session) => {
+      const dateStr = format(session.date, "yyyy-MM-dd")
+      progressMap.set(
+        dateStr,
+        (progressMap.get(dateStr) || 0) + session.wordsWritten
+      )
+    })
 
-  return {
-    totalWords,
-    totalSessions,
-    projectsCount,
-    recentSessions,
-    progressOverTime,
-  };
-};
+    const progressOverTime = Array.from(progressMap.entries()).map(([date, words]) => ({
+      date,
+      words,
+    }))
+
+    const result: DashboardData = {
+      totalWords,
+      totalSessions,
+      projectsCount,
+      recentSessions,
+      progressOverTime,
+    }
+
+    // Cache the result
+    setCached(cacheKey, result, CACHE_TTL)
+
+    return result
+  } catch (error) {
+    throw handleError(error)
+  }
+})

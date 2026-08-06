@@ -1,107 +1,152 @@
-import { supabase } from "../supabaseClient";
-import { Project } from "../types";
+import { supabase } from "../supabaseClient"
+import { Project } from "../types"
+import { clientOnly } from "../utils/clientOnly"
+import { handleError, notFoundError, AppError } from "../utils/errors"
+import { getCached, setCached, makeCacheKey } from "../utils/cache"
 
-// Ensure Supabase is only used client-side
-const ensureClientSide = () => {
-  if (typeof window === "undefined") {
-    throw new Error("Supabase cannot be used on the server. Use client-side only.");
-  }
-};
+const CACHE_TTL = 60000 // 1 minute
 
 const parseProject = (row: any): Project => {
   return {
     id: row.id,
     title: row.title,
     goal: row.goal,
-    userId: row.userId,
-    createdAt: new Date(row.createdAt),
-    updatedAt: new Date(row.updatedAt),
-  };
-};
+    userId: row.user_id || row.userId,
+    createdAt: new Date(row.created_at || row.createdAt),
+    updatedAt: new Date(row.updated_at || row.updatedAt),
+  }
+}
 
-export const createProject = async (project: Omit<Project, "id" | "createdAt" | "updatedAt">) => {
-  ensureClientSide();
-  
+const getCacheKey = (userId: string) => makeCacheKey('projects', userId)
+
+export const createProject = clientOnly(async (project: Omit<Project, "id" | "createdAt" | "updatedAt">) => {
   const newProject = {
     ...project,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
+    user_id: project.userId,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }
   
   const { data, error } = await supabase
     .from("projects")
     .insert(newProject)
     .select()
-    .single();
+    .single()
   
   if (error) {
-    throw error;
+    throw handleError(error)
   }
   
-  return parseProject(data);
-};
+  // Invalidate cache
+  const cacheKey = getCacheKey(project.userId)
+  setCached(cacheKey, null, 0)
+  
+  return parseProject(data)
+})
 
-export const getProjects = async (userId: string): Promise<Project[]> => {
-  ensureClientSide();
+export const getProjects = clientOnly(async (userId: string): Promise<Project[]> => {
+  const cacheKey = getCacheKey(userId)
+  
+  // Try to get from cache
+  const cached = getCached<Project[]>(cacheKey)
+  if (cached) {
+    return cached
+  }
   
   const { data, error } = await supabase
     .from("projects")
     .select("*")
-    .eq("userId", userId)
-    .order("createdAt", { ascending: false });
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
   
   if (error) {
-    throw error;
+    throw handleError(error)
   }
   
-  return data.map(parseProject);
-};
+  const projects = data.map(parseProject)
+  
+  // Cache the result
+  setCached(cacheKey, projects, CACHE_TTL)
+  
+  return projects
+})
 
-export const getProjectById = async (id: string): Promise<Project | null> => {
-  ensureClientSide();
+export const getProjectById = clientOnly(async (id: string): Promise<Project | null> => {
+  const cacheKey = makeCacheKey('project', id)
+  
+  // Try to get from cache
+  const cached = getCached<Project>(cacheKey)
+  if (cached) {
+    return cached
+  }
   
   const { data, error } = await supabase
     .from("projects")
     .select("*")
     .eq("id", id)
-    .single();
+    .single()
   
-  if (error || !data) {
-    return null;
+  if (error) {
+    if (error.message?.includes('not found') || error.message?.includes('No rows')) {
+      return null
+    }
+    throw handleError(error)
   }
   
-  return parseProject(data);
-};
-
-export const updateProject = async (id: string, data: Partial<Omit<Project, "id" | "createdAt" | "userId">>) => {
-  ensureClientSide();
+  if (!data) {
+    return null
+  }
   
+  const project = parseProject(data)
+  
+  // Cache the result
+  setCached(cacheKey, project, CACHE_TTL)
+  
+  return project
+})
+
+export const updateProject = clientOnly(async (id: string, data: Partial<Omit<Project, "id" | "createdAt" | "userId">>) => {
   const updateData = {
     ...data,
-    updatedAt: new Date().toISOString(),
-  };
+    updated_at: new Date().toISOString(),
+  }
   
   const { error } = await supabase
     .from("projects")
     .update(updateData)
-    .eq("id", id);
+    .eq("id", id)
   
   if (error) {
-    throw error;
+    throw handleError(error)
   }
   
-  return getProjectById(id);
-};
+  // Invalidate cache for this project and user's projects
+  const project = await getProjectById(id)
+  if (project) {
+    const userCacheKey = getCacheKey(project.userId)
+    setCached(userCacheKey, null, 0)
+  }
+  
+  return getProjectById(id)
+})
 
-export const deleteProject = async (id: string) => {
-  ensureClientSide();
+export const deleteProject = clientOnly(async (id: string) => {
+  // Get project first to invalidate user cache
+  const project = await getProjectById(id)
   
   const { error } = await supabase
     .from("projects")
     .delete()
-    .eq("id", id);
+    .eq("id", id)
   
   if (error) {
-    throw error;
+    throw handleError(error)
   }
-};
+  
+  // Invalidate cache
+  if (project) {
+    const userCacheKey = getCacheKey(project.userId)
+    setCached(userCacheKey, null, 0)
+    setCached(makeCacheKey('project', id), null, 0)
+  }
+})
