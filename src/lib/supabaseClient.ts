@@ -1,17 +1,30 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || ''
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || ''
+// Only create the client on the client-side
+// This prevents errors during server-side rendering
+let supabaseClient: ReturnType<typeof createClient> | null = null
 
-// Create Supabase client (works on both client and server)
-// Use a singleton pattern to avoid creating multiple clients
-declare global {
-  var supabaseClient: ReturnType<typeof createClient> | null
+export const getSupabaseClient = () => {
+  if (typeof window === 'undefined') {
+    // Server-side: return null (should not be used)
+    return null
+  }
+  
+  // Client-side: create or return existing client
+  if (!supabaseClient) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Supabase URL or Anon Key is missing!')
+      return null
+    }
+    
+    supabaseClient = createClient(supabaseUrl, supabaseKey)
+  }
+  
+  return supabaseClient
 }
 
-export const supabase = globalThis.supabaseClient ?? createClient(supabaseUrl, supabaseKey)
-
-// For hot reload in development
-if (process.env.NODE_ENV !== 'production') {
-  globalThis.supabaseClient = supabase
-}
+// For backward compatibility with existing code
+export const supabase = getSupabaseClient()

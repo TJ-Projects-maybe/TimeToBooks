@@ -1,17 +1,18 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { supabase } from "../supabaseClient"
+import { getSupabaseClient } from "../supabaseClient"
 import { User } from "../types"
-import { isClient } from "../utils/clientOnly"
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Only run on client-side
-    if (!isClient) {
+    const supabase = getSupabaseClient()
+    
+    if (!supabase) {
+      console.error('Supabase client is not available!')
       setLoading(false)
       return
     }

@@ -18,7 +18,7 @@ import {
   Line,
 } from "recharts"
 import { FiPlus, FiLogOut, FiBook, FiClock, FiBarChart2 } from "react-icons/fi"
-import { supabase } from "../../lib/supabaseClient"
+import { getSupabaseClient } from "../../lib/supabaseClient"
 import { LoadingSpinner, FullPageLoadingSpinner } from "../../components/LoadingSpinner"
 import { useToast } from "../../lib/hooks/useToast"
 import { getIconAriaLabel } from "../../lib/utils/a11y"
@@ -59,7 +59,7 @@ export default function DashboardPage() {
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut()
+      await getSupabaseClient()?.auth.signOut()
       toast.success("Déconnexion réussie")
       router.push("/login")
     } catch (error) {

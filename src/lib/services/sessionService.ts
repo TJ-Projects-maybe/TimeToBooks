@@ -1,4 +1,4 @@
-import { supabase } from "../supabaseClient"
+import { getSupabaseClient } from "../supabaseClient"
 import { WritingSession } from "../types"
 import { clientOnly } from "../utils/clientOnly"
 import { handleError } from "../utils/errors"
@@ -34,6 +34,11 @@ interface SessionRow {
 }
 
 export const createSession = clientOnly(async (session: Omit<WritingSession, "id" | "createdAt">): Promise<WritingSession> => {
+  const supabase = getSupabaseClient()
+  if (!supabase) {
+    throw new Error('Supabase client not available')
+  }
+  
   const newSession: SessionRow = {
     project_id: session.projectId,
     user_id: session.userId,
@@ -61,6 +66,11 @@ export const createSession = clientOnly(async (session: Omit<WritingSession, "id
 })
 
 export const getSessionsByProject = clientOnly(async (projectId: string, userId: string): Promise<WritingSession[]> => {
+  const supabase = getSupabaseClient()
+  if (!supabase) {
+    throw new Error('Supabase client not available')
+  }
+  
   const cacheKey = getProjectSessionsCacheKey(projectId, userId)
   
   // Try to get from cache
@@ -89,6 +99,11 @@ export const getSessionsByProject = clientOnly(async (projectId: string, userId:
 })
 
 export const getSessionsByUser = clientOnly(async (userId: string): Promise<WritingSession[]> => {
+  const supabase = getSupabaseClient()
+  if (!supabase) {
+    throw new Error('Supabase client not available')
+  }
+  
   const cacheKey = getUserSessionsCacheKey(userId)
   
   // Try to get from cache
@@ -116,6 +131,11 @@ export const getSessionsByUser = clientOnly(async (userId: string): Promise<Writ
 })
 
 export const updateSession = clientOnly(async (id: string, session: Partial<Omit<WritingSession, "id" | "userId" | "createdAt">>, userId: string): Promise<WritingSession> => {
+  const supabase = getSupabaseClient()
+  if (!supabase) {
+    throw new Error('Supabase client not available')
+  }
+  
   const updates: Record<string, any> = {
     project_id: session.projectId,
     words_written: session.wordsWritten,
@@ -143,6 +163,11 @@ export const updateSession = clientOnly(async (id: string, session: Partial<Omit
 })
 
 export const deleteSession = clientOnly(async (id: string, userId: string): Promise<void> => {
+  const supabase = getSupabaseClient()
+  if (!supabase) {
+    throw new Error('Supabase client not available')
+  }
+  
   const { error } = await supabase
     .from("writingSessions")
     .delete()

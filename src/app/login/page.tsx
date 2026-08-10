@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { supabase } from "../../lib/supabaseClient"
+import { getSupabaseClient } from "../../lib/supabaseClient"
 import { useRouter } from "next/navigation"
 import { FcGoogle } from "react-icons/fc"
 import { LoadingSpinner } from "../../components/LoadingSpinner"
@@ -23,6 +23,10 @@ export default function LoginPage() {
     try {
       setLoading(true)
       setError("")
+      const supabase = getSupabaseClient()
+      if (!supabase) {
+        throw new Error('Supabase client not available')
+      }
       const { error: authError } = await supabase.auth.signInWithOAuth({
         provider: "google",
       })
@@ -43,6 +47,10 @@ export default function LoginPage() {
     try {
       setLoading(true)
       setError("")
+      const supabase = getSupabaseClient()
+      if (!supabase) {
+        throw new Error('Supabase client not available')
+      }
 
       if (isLogin) {
         const { error: authError } = await supabase.auth.signInWithPassword({
