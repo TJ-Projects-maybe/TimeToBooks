@@ -12,7 +12,8 @@ export const useAuth = () => {
     const supabase = getSupabaseClient()
     
     if (!supabase) {
-      console.error('Supabase client is not available!')
+      // If Supabase is not available, set loading to false and user to null
+      setUser(null)
       setLoading(false)
       return
     }
