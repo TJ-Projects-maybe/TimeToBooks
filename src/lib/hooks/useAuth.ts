@@ -20,22 +20,23 @@ export const useAuth = () => {
     const checkSession = async () => {
       try {
         // Set a timeout to prevent infinite loading
-        const timeoutPromise = new Promise((_, reject) => 
+        const timeoutPromise = new Promise<never>((_, reject) => 
           setTimeout(() => reject(new Error('Session check timeout')), 5000)
         )
         
+        // Type the session promise properly
         const sessionPromise = supabase.auth.getSession()
         
-        const { data: { session } } = await Promise.race([
+        const result = await Promise.race([
           sessionPromise,
           timeoutPromise
-        ])
+        ]) as { data: { session: any } }
         
-        setUser(session?.user ? {
-          id: session.user.id,
-          email: session.user.email || '',
-          name: session.user.user_metadata?.name as string | undefined,
-          photoURL: session.user.user_metadata?.avatar_url as string | undefined,
+        setUser(result.data.session?.user ? {
+          id: result.data.session.user.id,
+          email: result.data.session.user.email || '',
+          name: result.data.session.user.user_metadata?.name as string | undefined,
+          photoURL: result.data.session.user.user_metadata?.avatar_url as string | undefined,
         } : null)
       } catch (error) {
         console.error('Error checking session:', error)
