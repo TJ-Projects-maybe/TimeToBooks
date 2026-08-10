@@ -1,6 +1,6 @@
 "use client"
 
-import { FiLoader2 } from 'react-icons/fi'
+import { FiLoader } from 'react-icons/fi'
 
 /**
  * LoadingSpinner component props
@@ -120,7 +120,7 @@ export const LoadingSpinner = ({
         />
         
         {/* Icon in the center */}
-        <FiLoader2
+        <FiLoader
           className={`absolute animate-spin ${colors.icon} ${config.spinner}`}
           aria-hidden="true"
         />

@@ -22,18 +22,30 @@ const getUserSessionsCacheKey = (userId: string) => makeCacheKey('sessions', 'us
 const getProjectSessionsCacheKey = (projectId: string, userId: string) => 
   makeCacheKey('sessions', 'project', projectId, 'user', userId)
 
+// Type for session database row
+interface SessionRow {
+  id?: string
+  project_id: string
+  user_id: string
+  date: string
+  words_written: number
+  notes?: string
+  created_at: string
+}
+
 export const createSession = clientOnly(async (session: Omit<WritingSession, "id" | "createdAt">): Promise<WritingSession> => {
-  const newSession = {
-    ...session,
+  const newSession: SessionRow = {
     project_id: session.projectId,
     user_id: session.userId,
+    date: session.date.toISOString(),
     words_written: session.wordsWritten,
+    notes: session.notes,
     created_at: new Date().toISOString(),
   }
   
   const { data, error } = await supabase
     .from("writingSessions")
-    .insert(newSession)
+    .insert(newSession as never)
     .select()
     .single()
   
@@ -68,7 +80,7 @@ export const getSessionsByProject = clientOnly(async (projectId: string, userId:
     throw handleError(error)
   }
   
-  const sessions = data.map(parseSession)
+  const sessions = (data || []).map(parseSession)
   
   // Cache the result
   setCached(cacheKey, sessions, CACHE_TTL)
@@ -95,7 +107,7 @@ export const getSessionsByUser = clientOnly(async (userId: string): Promise<Writ
     throw handleError(error)
   }
   
-  const sessions = data.map(parseSession)
+  const sessions = (data || []).map(parseSession)
   
   // Cache the result
   setCached(cacheKey, sessions, CACHE_TTL)
@@ -103,75 +115,44 @@ export const getSessionsByUser = clientOnly(async (userId: string): Promise<Writ
   return sessions
 })
 
-export const getSessionById = clientOnly(async (id: string): Promise<WritingSession | null> => {
-  const cacheKey = makeCacheKey('session', id)
-  
-  // Try to get from cache
-  const cached = getCached<WritingSession>(cacheKey)
-  if (cached) {
-    return cached
+export const updateSession = clientOnly(async (id: string, session: Partial<Omit<WritingSession, "id" | "userId" | "createdAt">>, userId: string): Promise<WritingSession> => {
+  const updates: Record<string, any> = {
+    project_id: session.projectId,
+    words_written: session.wordsWritten,
+    date: session.date?.toISOString(),
+    notes: session.notes,
   }
   
   const { data, error } = await supabase
     .from("writingSessions")
-    .select("*")
+    .update(updates as never)
     .eq("id", id)
+    .eq("user_id", userId)
+    .select()
     .single()
-  
-  if (error || !data) {
-    return null
-  }
-  
-  const session = parseSession(data)
-  
-  // Cache the result
-  setCached(cacheKey, session, CACHE_TTL)
-  
-  return session
-})
-
-export const updateSession = clientOnly(async (id: string, data: Partial<Omit<WritingSession, "id" | "createdAt" | "userId" | "projectId">>) => {
-  const updateData = {
-    ...data,
-    words_written: data.wordsWritten,
-  }
-  
-  const { error } = await supabase
-    .from("writingSessions")
-    .update(updateData)
-    .eq("id", id)
   
   if (error) {
     throw handleError(error)
   }
   
   // Invalidate cache
-  const session = await getSessionById(id)
-  if (session) {
-    setCached(getUserSessionsCacheKey(session.userId), null, 0)
-    setCached(getProjectSessionsCacheKey(session.projectId, session.userId), null, 0)
-  }
+  setCached(getUserSessionsCacheKey(userId), null, 0)
+  setCached(getProjectSessionsCacheKey(session.projectId || "", userId), null, 0)
   
-  return getSessionById(id)
+  return parseSession(data)
 })
 
-export const deleteSession = clientOnly(async (id: string) => {
-  // Get session first to invalidate cache
-  const session = await getSessionById(id)
-  
+export const deleteSession = clientOnly(async (id: string, userId: string): Promise<void> => {
   const { error } = await supabase
     .from("writingSessions")
     .delete()
     .eq("id", id)
+    .eq("user_id", userId)
   
   if (error) {
     throw handleError(error)
   }
   
   // Invalidate cache
-  if (session) {
-    setCached(getUserSessionsCacheKey(session.userId), null, 0)
-    setCached(getProjectSessionsCacheKey(session.projectId, session.userId), null, 0)
-    setCached(makeCacheKey('session', id), null, 0)
-  }
+  setCached(getUserSessionsCacheKey(userId), null, 0)
 })

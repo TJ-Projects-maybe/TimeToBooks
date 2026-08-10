@@ -61,7 +61,7 @@ export default function ProjectsPage() {
 
   const handleDeleteProject = async (id: string) => {
     try {
-      await deleteProject(id);
+      await deleteProject(id, user?.id || "");
       setProjects(projects.filter((p) => p.id !== id));
     } catch (error) {
       console.error("Error deleting project:", error);

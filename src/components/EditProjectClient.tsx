@@ -32,7 +32,7 @@ export default function EditProjectClient({ params }: { params: { id: string } }
   const fetchProject = async () => {
     try {
       setLoadingData(true);
-      const projectData = await getProjectById(params.id);
+      const projectData = await getProjectById(params.id, user?.id || "");
       
       if (!projectData) {
         router.push("/projets");

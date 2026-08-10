@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { supabase } from "../../lib/supabaseClient"
 import { useRouter } from "next/navigation"
-import { FcGoogle } from "react-icons/fi"
+import { FcGoogle } from "react-icons/fc"
 import { LoadingSpinner } from "../../components/LoadingSpinner"
 import { useToast } from "../../lib/hooks/useToast"
 import { getIconAriaLabel } from "../../lib/utils/a11y"

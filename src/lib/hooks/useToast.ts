@@ -1,6 +1,6 @@
 "use client"
 
-import { toast, ToasterToast } from 'sonner'
+import { toast } from 'sonner'
 
 /**
  * Toast types
@@ -21,9 +21,6 @@ export interface ToastOptions {
     label: string
     onClick: () => void
   }
-  promise?: Promise<any>
-  onDismiss?: (toast: ToasterToast) => void
-  onAutoClose?: (toast: ToasterToast) => void
 }
 
 /**
@@ -32,14 +29,12 @@ export interface ToastOptions {
 export const showSuccess = (
   message: string,
   options?: Omit<ToastOptions, 'type'>
-): string | undefined => {
-  return toast.success(message, {
-    duration: options?.duration || 4000,
+): void => {
+  toast.success(message, {
+    duration: options?.duration,
     description: options?.description,
     action: options?.action,
     cancel: options?.cancel,
-    onDismiss: options?.onDismiss,
-    onAutoClose: options?.onAutoClose,
   })
 }
 
@@ -49,14 +44,12 @@ export const showSuccess = (
 export const showError = (
   message: string,
   options?: Omit<ToastOptions, 'type'>
-): string | undefined => {
-  return toast.error(message, {
-    duration: options?.duration || 6000,
+): void => {
+  toast.error(message, {
+    duration: options?.duration,
     description: options?.description,
     action: options?.action,
     cancel: options?.cancel,
-    onDismiss: options?.onDismiss,
-    onAutoClose: options?.onAutoClose,
   })
 }
 
@@ -66,14 +59,12 @@ export const showError = (
 export const showWarning = (
   message: string,
   options?: Omit<ToastOptions, 'type'>
-): string | undefined => {
-  return toast.warning(message, {
-    duration: options?.duration || 5000,
+): void => {
+  toast.warning(message, {
+    duration: options?.duration,
     description: options?.description,
     action: options?.action,
     cancel: options?.cancel,
-    onDismiss: options?.onDismiss,
-    onAutoClose: options?.onAutoClose,
   })
 }
 
@@ -83,36 +74,12 @@ export const showWarning = (
 export const showInfo = (
   message: string,
   options?: Omit<ToastOptions, 'type'>
-): string | undefined => {
-  return toast.info(message, {
-    duration: options?.duration || 4000,
+): void => {
+  toast.info(message, {
+    duration: options?.duration,
     description: options?.description,
     action: options?.action,
     cancel: options?.cancel,
-    onDismiss: options?.onDismiss,
-    onAutoClose: options?.onAutoClose,
-  })
-}
-
-/**
- * Show a toast with a promise
- */
-export const showPromise = <T>(
-  promise: Promise<T>,
-  messages: {
-    loading: string
-    success: string
-    error: string
-  },
-  options?: ToastOptions
-): Promise<T> => {
-  return toast.promise(promise, {
-    loading: messages.loading,
-    success: messages.success,
-    error: messages.error,
-    duration: options?.duration,
-    onDismiss: options?.onDismiss,
-    onAutoClose: options?.onAutoClose,
   })
 }
 
@@ -132,18 +99,11 @@ export const useToast = () => {
   const info = (message: string, options?: Omit<ToastOptions, 'type'>) =>
     showInfo(message, options)
 
-  const promise = <T>(
-    promise: Promise<T>,
-    messages: { loading: string; success: string; error: string },
-    options?: ToastOptions
-  ) => showPromise(promise, messages, options)
-
   return {
     success,
     error,
     warning,
     info,
-    promise,
     // Direct access to toast functions
     toast: {
       success: toast.success,

@@ -39,7 +39,7 @@ export default function ProjectDetailClient({ params }: { params: { id: string }
     try {
       setLoadingData(true);
       const [projectData, sessionsData] = await Promise.all([
-        getProjectById(params.id),
+        getProjectById(params.id, user?.id || ""),
         getSessionsByProject(params.id, user!.id),
       ]);
       
@@ -82,7 +82,7 @@ export default function ProjectDetailClient({ params }: { params: { id: string }
 
   const handleDeleteSession = async (id: string) => {
     try {
-      await deleteSession(id);
+      await deleteSession(id, user?.id || "");
       setSessions(sessions.filter((s) => s.id !== id));
     } catch (error) {
       console.error("Error deleting session:", error);

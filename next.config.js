@@ -38,9 +38,13 @@ const nextConfig = {
     },
     // Enable parallel routes
     ppr: false,
-    // Enable server components external packages
-    serverComponentsExternalPackages: ['@supabase/supabase-js'],
   },
+  
+  // Server external packages (replaces experimental.serverComponentsExternalPackages)
+  serverExternalPackages: ['@supabase/supabase-js'],
+  
+  // Turbopack configuration (required for Next.js 16)
+  turbopack: {},
   
   // Headers for security and performance
   async headers() {
@@ -77,23 +81,6 @@ const nextConfig = {
     ]
   },
   
-  // Webpack configuration
-  webpack: (config, { isServer }) => {
-    // Fix for Supabase and other Node.js modules
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        net: false,
-        tls: false,
-        child_process: false,
-        crypto: false,
-      }
-    }
-    
-    return config
-  },
-  
   // Compression
   compress: true,
   
@@ -102,9 +89,6 @@ const nextConfig = {
   
   // Output standalone for Docker
   output: 'standalone',
-  
-  // Disable telemetry
-  telemetry: false,
 }
 
 module.exports = nextConfig
