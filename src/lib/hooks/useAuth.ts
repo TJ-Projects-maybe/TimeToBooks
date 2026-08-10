@@ -16,10 +16,20 @@ export const useAuth = () => {
       return
     }
 
-    // Check current session
+    // Check current session with timeout
     const checkSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        // Set a timeout to prevent infinite loading
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session check timeout')), 5000)
+        )
+        
+        const sessionPromise = supabase.auth.getSession()
+        
+        const { data: { session } } = await Promise.race([
+          sessionPromise,
+          timeoutPromise
+        ])
         
         setUser(session?.user ? {
           id: session.user.id,
@@ -39,7 +49,6 @@ export const useAuth = () => {
 
     // Set up auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state changed:', event)
       setUser(session?.user ? {
         id: session.user.id,
         email: session.user.email || '',

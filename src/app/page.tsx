@@ -16,7 +16,7 @@ export default function Home() {
     // Set a timeout to prevent infinite loading
     const timer = setTimeout(() => {
       setTimeoutReached(true)
-    }, 3000)
+    }, 10000) // 10 seconds timeout
 
     return () => clearTimeout(timer)
   }, [])
