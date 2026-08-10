@@ -1,8 +1,13 @@
 import EditProjectClient from "../../../../components/EditProjectClient";
 
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default function Page({ params }: { params: { id: string } }) {
-  return <EditProjectClient params={params} />;
+export default async function Page({ params }: PageProps) {
+  const resolvedParams = await params;
+  return <EditProjectClient params={resolvedParams} />;
 }
