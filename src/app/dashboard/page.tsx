@@ -5,17 +5,7 @@ import { useRouter } from "next/navigation"
 import { getDashboardData } from "../../lib/services/dashboardService"
 import { DashboardData } from "../../lib/types"
 import Link from "next/link"
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-} from "recharts"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts"
 import { FiPlus, FiLogOut, FiBook, FiClock, FiBarChart2 } from "react-icons/fi"
 import { getSupabaseClient } from "../../lib/supabaseClient"
 import { LoadingSpinner, FullPageLoadingSpinner } from "../../components/LoadingSpinner"
@@ -29,18 +19,14 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
-  const [loadingData, setLoadingData] = useState(true)
-  const [supabaseAvailable, setSupabaseAvailable] = useState<boolean | null>(null)
+  const [loadingData, setLoadingData] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const toast = useToast()
 
-  // Check auth on client-side only
   useEffect(() => {
     const supabase = getSupabaseClient()
-    setSupabaseAvailable(!!supabase)
-    
     if (!supabase) {
-      // If Supabase is not available, redirect to login
-      router.push("/login")
+      setError("Supabase n'est pas configuré. Vérifiez les variables d'environnement NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY.")
       setLoading(false)
       return
     }
@@ -53,277 +39,122 @@ export default function DashboardPage() {
         } else {
           router.push("/login")
         }
-      } catch (error) {
-        console.error('Error checking session:', error)
-        router.push("/login")
-      } finally {
+      } catch (err) {
+        setError("Erreur de session. Veuillez rafraîchir la page.")
         setLoading(false)
       }
     }
 
     checkSession()
-
-    // Set up auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.user) {
-        setUser(session.user)
-      } else {
-        router.push("/login")
-      }
+      if (session?.user) setUser(session.user)
+      else router.push("/login")
       setLoading(false)
     })
-
     return () => subscription?.unsubscribe()
   }, [router])
 
+  useEffect(() => { if (user?.id) fetchDashboardData() }, [user])
+
   const fetchDashboardData = async () => {
     if (!user?.id) return
-    
     try {
       setLoadingData(true)
       const data = await getDashboardData(user.id)
       setDashboardData(data)
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error)
-      toast.error("Erreur lors du chargement des données du tableau de bord")
+    } catch (err) {
+      toast.error("Erreur de chargement")
     } finally {
       setLoadingData(false)
     }
   }
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchDashboardData()
-    }
-  }, [user])
-
   const handleLogout = async () => {
     const supabase = getSupabaseClient()
-    if (!supabase) {
-      toast.error("Supabase n'est pas disponible")
-      return
-    }
-    
+    if (!supabase) return
     try {
       await supabase.auth.signOut()
-      toast.success("Déconnexion réussie")
       router.push("/login")
-    } catch (error) {
-      console.error("Error signing out:", error)
-      toast.error("Erreur lors de la déconnexion")
+    } catch (err) {
+      toast.error("Erreur de déconnexion")
     }
   }
 
-  // Show loading while checking Supabase and auth
-  if (supabaseAvailable === null || loading) {
-    return <FullPageLoadingSpinner message="Chargement..." />
-  }
-
-  // If Supabase is not available, redirect to login
-  if (!supabaseAvailable) {
-    return <FullPageLoadingSpinner message="Redirection vers la page de connexion..." />
-  }
-
-  if (!user) {
-    return <FullPageLoadingSpinner message="Redirection vers la page de connexion..." />
-  }
-
-  if (loadingData) {
-    return <FullPageLoadingSpinner message="Chargement des données..." />
-  }
-
-  if (!dashboardData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-blue-600 mb-4">Tableau de bord</h1>
-          <p className="text-gray-600">Aucune donnée disponible</p>
-          <button
-            onClick={fetchDashboardData}
-            className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-          >
-            Réessayer
-          </button>
-        </div>
+  if (error) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="bg-white shadow-md rounded-lg p-8 max-w-2xl text-center">
+        <h1 className="text-2xl font-bold text-red-600 mb-4">Erreur de configuration</h1>
+        <p className="text-gray-700 mb-4">{error}</p>
+        <p className="text-sm text-gray-600 mb-6">
+          Vérifiez que NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY sont configurés dans Vercel.
+        </p>
+        <button onClick={() => window.location.reload()} className="bg-blue-600 text-white px-6 py-2 rounded-lg">
+          Rafraîchir
+        </button>
       </div>
-    )
-  }
+    </div>
+  )
+
+  if (loading) return <FullPageLoadingSpinner message="Vérification de la session..." />
+  if (!user) return null
+  if (loadingData) return <FullPageLoadingSpinner message="Chargement des données..." />
+  if (!dashboardData) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold text-blue-600 mb-4">Tableau de bord</h1>
+        <p className="text-gray-600">Aucune donnée disponible</p>
+        <button onClick={fetchDashboardData} className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg">
+          Réessayer
+        </button>
+      </div>
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <FiBook className="text-2xl text-blue-600" aria-hidden="true" />
+            <FiBook className="text-2xl text-blue-600" />
             <h1 className="text-xl font-bold text-gray-900">TimeToBooks</h1>
           </div>
           <div className="flex items-center gap-4">
-            {user?.photoURL && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={user.photoURL}
-                alt="Photo de profil"
-                className="w-10 h-10 rounded-full"
-                loading="lazy"
-              />
-            )}
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors"
-              aria-label={getIconAriaLabel("logout")}
-            >
-              <FiLogOut aria-hidden="true" />
-              Déconnexion
+            {user?.photoURL && <img src={user.photoURL} alt="Profil" className="w-10 h-10 rounded-full" />}
+            <button onClick={handleLogout} className="flex items-center gap-2 text-gray-600">
+              <FiLogOut /> Déconnexion
             </button>
           </div>
         </div>
       </header>
-
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+          <div className="bg-white shadow-md rounded-lg p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <FiBook className="text-2xl text-blue-600" aria-hidden="true" />
-              </div>
+              <div className="p-3 bg-blue-100 rounded-lg"><FiBook className="text-2xl text-blue-600" /></div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Projets</h3>
-                <p className="text-2xl font-bold text-gray-900">{dashboardData.projectsCount}</p>
+                <p className="text-2xl font-bold">{dashboardData.projectsCount}</p>
               </div>
             </div>
           </div>
-
-          <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+          <div className="bg-white shadow-md rounded-lg p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <FiClock className="text-2xl text-green-600" aria-hidden="true" />
-              </div>
+              <div className="p-3 bg-green-100 rounded-lg"><FiClock className="text-2xl text-green-600" /></div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Sessions</h3>
-                <p className="text-2xl font-bold text-gray-900">{dashboardData.totalSessions}</p>
+                <p className="text-2xl font-bold">{dashboardData.totalSessions}</p>
               </div>
             </div>
           </div>
-
-          <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+          <div className="bg-white shadow-md rounded-lg p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <FiBarChart2 className="text-2xl text-purple-600" aria-hidden="true" />
-              </div>
+              <div className="p-3 bg-purple-100 rounded-lg"><FiBarChart2 className="text-2xl text-purple-600" /></div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500">Mots écrits</h3>
-                <p className="text-2xl font-bold text-gray-900">{dashboardData.totalWords}</p>
+                <p className="text-2xl font-bold">{dashboardData.totalWords}</p>
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Progression sur 30 jours</h2>
-            {dashboardData.progressOverTime.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={dashboardData.progressOverTime}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="words"
-                    stroke="#3b82f6"
-                    strokeWidth={2}
-                    name="Mots écrits"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-gray-500 text-center py-8">Aucune donnée de progression</p>
-            )}
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Mots par session</h2>
-            {dashboardData.recentSessions.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart
-                  data={dashboardData.recentSessions.map((s) => ({
-                    date: s.date.toLocaleDateString(),
-                    words: s.wordsWritten,
-                  }))}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="words" fill="#10b981" name="Mots" />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-gray-500 text-center py-8">Aucune session récente</p>
-            )}
-          </div>
-        </div>
-
-        {/* Recent Sessions Table */}
-        <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Sessions récentes</h2>
-            <Link
-              href="/projets"
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-            >
-              <FiPlus aria-hidden="true" />
-              Nouveau projet
-            </Link>
-          </div>
-          
-          {dashboardData.recentSessions.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Projet
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Mots écrits
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Notes
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {dashboardData.recentSessions.slice(0, 5).map((session) => (
-                    <tr key={session.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {session.date.toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {dashboardData.projectsCount > 0 ? "Projet" : "Inconnu"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {session.wordsWritten}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {session.notes || "-"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="text-gray-500 text-center py-8">Aucune session récente</p>
-          )}
         </div>
       </main>
     </div>
