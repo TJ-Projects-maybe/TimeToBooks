@@ -9,6 +9,8 @@ import { useToast } from "../../lib/hooks/useToast"
 
 export const dynamic = "force-dynamic"
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://time-to-books.vercel.app"
+
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -35,6 +37,9 @@ export default function LoginPage() {
       setError("")
       const { error: authError } = await supabase.auth.signInWithOAuth({
         provider: "google",
+        options: {
+          redirectTo: SITE_URL,
+        }
       })
       if (authError) throw authError
     } catch (err: any) {
@@ -59,6 +64,9 @@ export default function LoginPage() {
         const { error: authError } = await supabase.auth.signInWithPassword({
           email,
           password,
+          options: {
+            redirectTo: SITE_URL,
+          }
         })
         if (authError) throw authError
         router.push("/dashboard")
@@ -66,6 +74,10 @@ export default function LoginPage() {
         const { error: authError } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            emailRedirectTo: SITE_URL,
+            redirectTo: SITE_URL,
+          }
         })
         if (authError) throw authError
         router.push("/dashboard")
@@ -94,6 +106,7 @@ export default function LoginPage() {
             <p><strong>Variables requises dans Vercel :</strong></p>
             <code className="block my-1">NEXT_PUBLIC_SUPABASE_URL</code>
             <code className="block my-1">NEXT_PUBLIC_SUPABASE_ANON_KEY</code>
+            <code className="block my-1">NEXT_PUBLIC_SITE_URL</code>
           </div>
         </div>
       </div>
