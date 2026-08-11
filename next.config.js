@@ -1,7 +1,7 @@
-module.exports = {
-  output: "standalone",
+const nextConfig = {
   images: {
-    unoptimized: true
+    unoptimized: true,
   },
-  turbopack: {}
 }
+
+module.exports = nextConfig
