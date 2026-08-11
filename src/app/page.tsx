@@ -10,12 +10,12 @@ export default function Home() {
   const router = useRouter()
 
   useEffect(() => {
-    // Always redirect to /login on the home page
-    // Auth will be handled by the login page
+    // Redirection directe vers /login sans vérifier l'auth
+    // L'auth sera gérée par les pages individuelles
     router.push("/login")
   }, [router])
 
   return (
-    <FullPageLoadingSpinner message="Redirection en cours..." />
+    <FullPageLoadingSpinner message="Redirection vers la page de connexion..." />
   )
 }

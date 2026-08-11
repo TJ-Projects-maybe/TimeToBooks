@@ -12,7 +12,7 @@ export const useAuth = () => {
     const supabase = getSupabaseClient()
     
     if (!supabase) {
-      // If Supabase is not available, set loading to false and user to null
+      // Supabase not available (missing env vars or SSR)
       setUser(null)
       setLoading(false)
       return
@@ -21,12 +21,10 @@ export const useAuth = () => {
     // Check current session with timeout
     const checkSession = async () => {
       try {
-        // Set a timeout to prevent infinite loading
         const timeoutPromise = new Promise<never>((_, reject) => 
           setTimeout(() => reject(new Error('Session check timeout')), 5000)
         )
         
-        // Type the session promise properly
         const sessionPromise = supabase.auth.getSession()
         
         const result = await Promise.race([

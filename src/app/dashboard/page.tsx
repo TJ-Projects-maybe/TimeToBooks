@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "../../lib/hooks/useAuth"
 import { getDashboardData } from "../../lib/services/dashboardService"
 import { DashboardData } from "../../lib/types"
 import Link from "next/link"
@@ -26,16 +25,63 @@ import { getIconAriaLabel } from "../../lib/utils/a11y"
 export const dynamic = "force-dynamic"
 
 export default function DashboardPage() {
-  const { user, loading } = useAuth()
   const router = useRouter()
+  const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [loadingData, setLoadingData] = useState(true)
+  const [supabaseAvailable, setSupabaseAvailable] = useState<boolean | null>(null)
   const toast = useToast()
 
+  // Check auth on client-side only
+  useEffect(() => {
+    const supabase = getSupabaseClient()
+    setSupabaseAvailable(!!supabase)
+    
+    if (!supabase) {
+      // If Supabase is not available, redirect to login
+      router.push("/login")
+      setLoading(false)
+      return
+    }
+
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          setUser(session.user)
+        } else {
+          router.push("/login")
+        }
+      } catch (error) {
+        console.error('Error checking session:', error)
+        router.push("/login")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    checkSession()
+
+    // Set up auth listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setUser(session.user)
+      } else {
+        router.push("/login")
+      }
+      setLoading(false)
+    })
+
+    return () => subscription?.unsubscribe()
+  }, [router])
+
   const fetchDashboardData = async () => {
+    if (!user?.id) return
+    
     try {
       setLoadingData(true)
-      const data = await getDashboardData(user!.id)
+      const data = await getDashboardData(user.id)
       setDashboardData(data)
     } catch (error) {
       console.error("Error fetching dashboard data:", error)
@@ -46,20 +92,20 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login")
-    }
-  }, [user, loading, router])
-
-  useEffect(() => {
-    if (user) {
+    if (user?.id) {
       fetchDashboardData()
     }
   }, [user])
 
   const handleLogout = async () => {
+    const supabase = getSupabaseClient()
+    if (!supabase) {
+      toast.error("Supabase n'est pas disponible")
+      return
+    }
+    
     try {
-      await getSupabaseClient()?.auth.signOut()
+      await supabase.auth.signOut()
       toast.success("Déconnexion réussie")
       router.push("/login")
     } catch (error) {
@@ -68,7 +114,21 @@ export default function DashboardPage() {
     }
   }
 
-  if (loading || loadingData) {
+  // Show loading while checking Supabase and auth
+  if (supabaseAvailable === null || loading) {
+    return <FullPageLoadingSpinner message="Chargement..." />
+  }
+
+  // If Supabase is not available, redirect to login
+  if (!supabaseAvailable) {
+    return <FullPageLoadingSpinner message="Redirection vers la page de connexion..." />
+  }
+
+  if (!user) {
+    return <FullPageLoadingSpinner message="Redirection vers la page de connexion..." />
+  }
+
+  if (loadingData) {
     return <FullPageLoadingSpinner message="Chargement des données..." />
   }
 
@@ -200,7 +260,7 @@ export default function DashboardPage() {
                   <XAxis dataKey="date" />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="words" fill="#3b82f6" name="Mots" />
+                  <Bar dataKey="words" fill="#10b981" name="Mots" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -209,56 +269,52 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Recent Sessions */}
-        <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 mb-8">
+        {/* Recent Sessions Table */}
+        <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Sessions récentes</h2>
             <Link
               href="/projets"
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center gap-2"
-              aria-label={getIconAriaLabel("plus", "Créer un") + " projet"}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
             >
               <FiPlus aria-hidden="true" />
               Nouveau projet
             </Link>
           </div>
-
+          
           {dashboardData.recentSessions.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Date
                     </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Projet
                     </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Mots
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Mots écrits
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Notes
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {dashboardData.recentSessions.map((session) => (
+                  {dashboardData.recentSessions.slice(0, 5).map((session) => (
                     <tr key={session.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {session.date.toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {session.projectId}
+                        {dashboardData.projectsCount > 0 ? "Projet" : "Inconnu"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {session.wordsWritten}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {session.notes || "-"}
                       </td>
                     </tr>
                   ))}
@@ -266,9 +322,7 @@ export default function DashboardPage() {
               </table>
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">
-              Aucune session enregistrée. Commencez par créer un projet !
-            </p>
+            <p className="text-gray-500 text-center py-8">Aucune session récente</p>
           )}
         </div>
       </main>

@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
-import { getSupabaseClient } from "../../lib/supabaseClient"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { getSupabaseClient } from "../../lib/supabaseClient"
 import { FcGoogle } from "react-icons/fc"
-import { LoadingSpinner } from "../../components/LoadingSpinner"
+import { LoadingSpinner, FullPageLoadingSpinner } from "../../components/LoadingSpinner"
 import { useToast } from "../../lib/hooks/useToast"
 import { getIconAriaLabel } from "../../lib/utils/a11y"
 
@@ -16,17 +16,34 @@ export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true)
   const [error, setError] = useState<string>("")
   const [loading, setLoading] = useState(false)
+  const [supabaseAvailable, setSupabaseAvailable] = useState<boolean | null>(null)
   const router = useRouter()
   const toast = useToast()
 
+  // Check if Supabase is available (client-side only)
+  useEffect(() => {
+    const supabase = getSupabaseClient()
+    setSupabaseAvailable(!!supabase)
+    
+    // If Supabase is not available, check if env vars are missing
+    if (!supabase) {
+      console.error('Supabase client is null. Check your environment variables:')
+      console.error('NEXT_PUBLIC_SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+      console.error('NEXT_PUBLIC_SUPABASE_ANON_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    }
+  }, [])
+
   const handleGoogleSignIn = async () => {
+    const supabase = getSupabaseClient()
+    if (!supabase) {
+      setError("Supabase n'est pas configuré correctement. Vérifiez les variables d'environnement.")
+      toast.error("Configuration Supabase manquante")
+      return
+    }
+    
     try {
       setLoading(true)
       setError("")
-      const supabase = getSupabaseClient()
-      if (!supabase) {
-        throw new Error('Supabase client not available')
-      }
       const { error: authError } = await supabase.auth.signInWithOAuth({
         provider: "google",
       })
@@ -44,13 +61,16 @@ export default function LoginPage() {
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const supabase = getSupabaseClient()
+    if (!supabase) {
+      setError("Supabase n'est pas configuré correctement. Vérifiez les variables d'environnement.")
+      toast.error("Configuration Supabase manquante")
+      return
+    }
+    
     try {
       setLoading(true)
       setError("")
-      const supabase = getSupabaseClient()
-      if (!supabase) {
-        throw new Error('Supabase client not available')
-      }
 
       if (isLogin) {
         const { error: authError } = await supabase.auth.signInWithPassword({
@@ -61,6 +81,7 @@ export default function LoginPage() {
           throw authError
         }
         toast.success("Connexion réussie !")
+        router.push("/dashboard")
       } else {
         const { error: authError } = await supabase.auth.signUp({
           email,
@@ -70,8 +91,8 @@ export default function LoginPage() {
           throw authError
         }
         toast.success("Inscription réussie ! Veuillez vérifier votre email.")
+        router.push("/dashboard")
       }
-      router.push("/dashboard")
     } catch (err: unknown) {
       const errorMessage = (err as Error).message || "Erreur d'authentification"
       setError(errorMessage)
@@ -79,6 +100,37 @@ export default function LoginPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Show loading while checking Supabase availability
+  if (supabaseAvailable === null) {
+    return <FullPageLoadingSpinner message="Vérification de la configuration..." />
+  }
+
+  // If Supabase is not available, show clear error message
+  if (!supabaseAvailable) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center py-12 sm:px-6 lg:px-8">
+        <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-8 max-w-md text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">
+            Configuration Supabase manquante
+          </h1>
+          <div className="space-y-4 text-left">
+            <p className="text-gray-700">
+              Les variables d'environnement nécessaires pour Supabase ne sont pas configurées.
+            </p>
+            <div className="bg-gray-100 p-4 rounded-lg text-sm text-gray-800">
+              <p><strong>Variables requises :</strong></p>
+              <code className="block my-1">NEXT_PUBLIC_SUPABASE_URL</code>
+              <code className="block my-1">NEXT_PUBLIC_SUPABASE_ANON_KEY</code>
+            </div>
+            <p className="text-gray-700">
+              Configurez ces variables dans votre projet Vercel sous <strong>Settings &gt; Environment Variables</strong>.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
