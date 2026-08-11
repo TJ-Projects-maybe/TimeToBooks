@@ -8,9 +8,8 @@ import Link from "next/link"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts"
 import { FiPlus, FiLogOut, FiBook, FiClock, FiBarChart2 } from "react-icons/fi"
 import { getSupabaseClient } from "../../lib/supabaseClient"
-import { LoadingSpinner, FullPageLoadingSpinner } from "../../components/LoadingSpinner"
+import { LoadingSpinner } from "../../components/LoadingSpinner"
 import { useToast } from "../../lib/hooks/useToast"
-import { getIconAriaLabel } from "../../lib/utils/a11y"
 
 export const dynamic = "force-dynamic"
 
@@ -26,7 +25,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const supabase = getSupabaseClient()
     if (!supabase) {
-      setError("Supabase n'est pas configuré. Vérifiez les variables d'environnement NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY.")
+      setError("Supabase n'est pas configuré.")
       setLoading(false)
       return
     }
@@ -37,10 +36,11 @@ export default function DashboardPage() {
         if (session?.user) {
           setUser(session.user)
         } else {
-          router.push("/login")
+          setError("Non connecté")
         }
       } catch (err) {
-        setError("Erreur de session. Veuillez rafraîchir la page.")
+        setError("Erreur de session")
+      } finally {
         setLoading(false)
       }
     }
@@ -48,8 +48,7 @@ export default function DashboardPage() {
     checkSession()
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) setUser(session.user)
-      else router.push("/login")
-      setLoading(false)
+      else setUser(null)
     })
     return () => subscription?.unsubscribe()
   }, [router])
@@ -74,41 +73,28 @@ export default function DashboardPage() {
     if (!supabase) return
     try {
       await supabase.auth.signOut()
-      router.push("/login")
+      router.push("/")
     } catch (err) {
-      toast.error("Erreur de déconnexion")
+      toast.error("Erreur")
     }
   }
 
   if (error) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="bg-white shadow-md rounded-lg p-8 max-w-2xl text-center">
-        <h1 className="text-2xl font-bold text-red-600 mb-4">Erreur de configuration</h1>
-        <p className="text-gray-700 mb-4">{error}</p>
-        <p className="text-sm text-gray-600 mb-6">
-          Vérifiez que NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY sont configurés dans Vercel.
-        </p>
-        <button onClick={() => window.location.reload()} className="bg-blue-600 text-white px-6 py-2 rounded-lg">
-          Rafraîchir
+        <h1 className="text-2xl font-bold text-red-600 mb-4">Erreur</h1>
+        <p className="text-gray-700 mb-6">{error}</p>
+        <button onClick={() => router.push("/")} className="bg-blue-600 text-white px-6 py-2 rounded-lg">
+          Retour à l'accueil
         </button>
       </div>
     </div>
   )
 
-  if (loading) return <FullPageLoadingSpinner message="Vérification de la session..." />
-  if (!user) return null
-  if (loadingData) return <FullPageLoadingSpinner message="Chargement des données..." />
-  if (!dashboardData) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-blue-600 mb-4">Tableau de bord</h1>
-        <p className="text-gray-600">Aucune donnée disponible</p>
-        <button onClick={fetchDashboardData} className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg">
-          Réessayer
-        </button>
-      </div>
-    </div>
-  )
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Chargement...</div>
+  if (!user) return <div className="min-h-screen flex items-center justify-center">Non connecté</div>
+  if (loadingData) return <div className="min-h-screen flex items-center justify-center">Chargement des données...</div>
+  if (!dashboardData) return <div className="min-h-screen flex items-center justify-center">Aucune donnée</div>
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -118,12 +104,9 @@ export default function DashboardPage() {
             <FiBook className="text-2xl text-blue-600" />
             <h1 className="text-xl font-bold text-gray-900">TimeToBooks</h1>
           </div>
-          <div className="flex items-center gap-4">
-            {user?.photoURL && <img src={user.photoURL} alt="Profil" className="w-10 h-10 rounded-full" />}
-            <button onClick={handleLogout} className="flex items-center gap-2 text-gray-600">
-              <FiLogOut /> Déconnexion
-            </button>
-          </div>
+          <button onClick={handleLogout} className="flex items-center gap-2 text-gray-600">
+            <FiLogOut /> Déconnexion
+          </button>
         </div>
       </header>
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

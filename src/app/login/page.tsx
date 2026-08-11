@@ -6,7 +6,6 @@ import { getSupabaseClient } from "../../lib/supabaseClient"
 import { FcGoogle } from "react-icons/fc"
 import { LoadingSpinner } from "../../components/LoadingSpinner"
 import { useToast } from "../../lib/hooks/useToast"
-import { getIconAriaLabel } from "../../lib/utils/a11y"
 
 export const dynamic = "force-dynamic"
 
@@ -80,7 +79,7 @@ export default function LoginPage() {
   }
 
   if (supabaseAvailable === null) {
-    return <LoadingSpinner message="Vérification de la configuration..." show={true} />
+    return <div className="min-h-screen flex items-center justify-center">Chargement...</div>
   }
 
   if (!supabaseAvailable) {
@@ -96,9 +95,6 @@ export default function LoginPage() {
             <code className="block my-1">NEXT_PUBLIC_SUPABASE_URL</code>
             <code className="block my-1">NEXT_PUBLIC_SUPABASE_ANON_KEY</code>
           </div>
-          <button onClick={() => window.location.reload()} className="bg-blue-600 text-white px-6 py-2 rounded-lg">
-            Rafraîchir
-          </button>
         </div>
       </div>
     )
