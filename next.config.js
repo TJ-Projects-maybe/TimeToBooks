@@ -1,9 +1,7 @@
-/** @type {import("next").NextConfig} */
-const nextConfig = {
+module.exports = {
+  output: "standalone",
   images: {
-    unoptimized: true,
+    unoptimized: true
   },
-  turbopack: {},
+  turbopack: {}
 }
-
-module.exports = nextConfig
