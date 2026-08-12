@@ -23,6 +23,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr">
+      <head>
+        <meta charSet="UTF-8" />
+      </head>
       <body className={inter.className}>
         <SkipLink />
         <ToastProvider />
