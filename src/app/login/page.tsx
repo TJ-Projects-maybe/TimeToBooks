@@ -63,10 +63,7 @@ export default function LoginPage() {
       if (isLogin) {
         const { error: authError } = await supabase.auth.signInWithPassword({
           email,
-          password,
-          options: {
-            redirectTo: SITE_URL,
-          }
+          password
         })
         if (authError) throw authError
         router.push("/dashboard")
@@ -75,12 +72,11 @@ export default function LoginPage() {
           email,
           password,
           options: {
-            emailRedirectTo: SITE_URL,
-            redirectTo: SITE_URL,
+            emailRedirectTo: SITE_URL
           }
         })
         if (authError) throw authError
-        router.push("/dashboard")
+        toast.success("Inscription réussie ! Vérifiez votre email.")
       }
     } catch (err: any) {
       setError(err.message || "Erreur d'authentification")
